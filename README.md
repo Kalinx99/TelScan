@@ -1,6 +1,11 @@
 # TelScan  明天上传代码，下班
 ##### 🌐 Telegram群组内容监控系统
 搞了几天算是搞出来了，方便搞安全的师傅们监控一些群组中的关键内容。
+# 🌐 Telegram 群组内容监控系统
+[![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com)  
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  
+[![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
+
 #### 1、平台介绍
 平台调用telegram API对已加入的群组、频道或者是公开的群组、频道内容进行实时监控，然后web展示以及钉钉通知。
 
@@ -30,6 +35,7 @@
 <img width="554" height="143" alt="11" src="https://github.com/user-attachments/assets/cdf68675-06f1-4f35-9789-d262b1f46bc8" />
 
 ##### 🧐 搭建教程
+- 前往 [Telegram 官方](https://my.telegram.org) 注册  
 先去注册一个telegram API，网上有教程搜一下，此外如果注册api一直报ERROR的话，狂点**创建应用程序**按钮即可成功。
 环境使用的是python和mysql环境
 <img width="804" height="410" alt="12" src="https://github.com/user-attachments/assets/b8977eea-3606-42dd-8486-e39f0ecf9517" />
@@ -38,6 +44,9 @@
 <img width="574" height="539" alt="13" src="https://github.com/user-attachments/assets/926d67f7-b421-4175-810d-c889c9797de6" />
 
 第二步：pip源码下来，然后安装需要的库
+```bash
+git clone https://github.com/wxwhhh/TelScan.git
+cd TelScan
 
 第三步：启动环境  python3 app.py
 <img width="836" height="177" alt="14" src="https://github.com/user-attachments/assets/002db866-bad5-4feb-ab4d-d39b66490b16" />
@@ -47,3 +56,13 @@
 <img width="1108" height="163" alt="16" src="https://github.com/user-attachments/assets/e36fec9a-7cba-4c2f-9e32-0e5c9b3249b6" />
 <img width="524" height="205" alt="17" src="https://github.com/user-attachments/assets/06111089-16f1-4e9c-8332-12f15fe6b4d9" />
 
+## ⚠️ 使用声明
+
+- 本项目仅用于 **学习研究** 与 **安全测试**，请勿将其用于任何非法用途。  
+- 严禁任何形式的 **倒卖、二次收费分发或商用行为**。  
+- 使用本项目可能涉及 **监控、收集、存储第三方数据**，请严格遵守当地法律法规，避免触碰法律红线。  
+- 因使用本项目所产生的 **法律责任与风险**，均由使用者本人承担，作者不对任何直接或间接损失负责。  
+- 下载或使用本项目代码，即视为已接受以上条款。  
+
+#### 欢迎使用师傅们关注交流
+<img width="562" height="210" alt="Snipaste_2025-08-13_11-10-04" src="https://github.com/user-attachments/assets/94dab6f4-640c-4458-9edd-3e90ead27b4d" />
