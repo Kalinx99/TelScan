@@ -22,8 +22,9 @@
 **三是**手动添加群组，输入群组的链接地址，然后添加并监听。
 <img width="969" height="215" alt="9" src="https://github.com/user-attachments/assets/061bc948-e6d9-4a87-b74e-b4eff97e7306" />
 #### 4、平台功能 -- 关键词管理
-必须在添加监控群组后才可以添加监听关键词，然后输入要监听的关键词，选择要关键词监听群组(可多选)然后保存就可以了。
-<img width="2099" height="1088" alt="image" src="https://github.com/user-attachments/assets/06b6348a-0de6-4141-9230-19a3a52b590d" />
+必须在添加监控群组后才可以添加监听关键词，然后输入要监听的关键词，选择要关键词监听群组(可多选)然后保存就可以了。(可一次添加多个关键词，一行一个)
+<img width="1792" height="849" alt="image" src="https://github.com/user-attachments/assets/7ca13fa2-8f49-4cd6-a7f3-ba1ec006b059" />
+
 #### 5、平台功能 -- 消息日志
 监听到的信息会在这里展示，包括时间、发消息任意、群组等信息，上面还有筛选功能数据过多时可以进行筛选，同时配置钉钉的话就会同步发送，及时掌握消息。
 <img width="1275" height="369" alt="10" src="https://github.com/user-attachments/assets/f04f7fc5-7e88-4a7c-8c42-c6a42f094e86" />
