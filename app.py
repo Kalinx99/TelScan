@@ -348,24 +348,36 @@ def delete_group(group_id):
 @login_required # 添加鉴权装饰器
 def keywords():
     if request.method == 'POST':
-        keyword_text = request.form.get('keyword_text', '').strip()
+        keywords_text = request.form.get('keywords_text', '').strip()
         group_ids = request.form.getlist('groups')
 
-        if not keyword_text:
-            flash('关键词不能为空。', 'danger')
+        if not keywords_text:
+            flash('关键词列表不能为空。', 'danger')
         elif not group_ids:
             flash('必须至少选择一个群组。', 'danger')
         else:
-            existing_keyword = Keyword.query.filter_by(text=keyword_text).first()
-            if existing_keyword:
-                flash('该关键词已存在，请直接编辑。', 'warning')
-            else:
-                new_keyword = Keyword(text=keyword_text)
-                groups = MonitoredGroup.query.filter(MonitoredGroup.id.in_(group_ids)).all()
-                new_keyword.groups.extend(groups)
-                db.session.add(new_keyword)
+            keywords_list = [kw.strip() for kw in keywords_text.splitlines() if kw.strip()]
+            added_count = 0
+            skipped_count = 0
+            groups = MonitoredGroup.query.filter(MonitoredGroup.id.in_(group_ids)).all()
+
+            for keyword_text in keywords_list:
+                existing_keyword = Keyword.query.filter_by(text=keyword_text).first()
+                if existing_keyword:
+                    skipped_count += 1
+                else:
+                    new_keyword = Keyword(text=keyword_text)
+                    new_keyword.groups.extend(groups)
+                    db.session.add(new_keyword)
+                    added_count += 1
+            
+            if added_count > 0:
                 db.session.commit()
-                flash('关键词添加成功！', 'success')
+                flash(f'成功添加 {added_count} 个新关键词！', 'success')
+            
+            if skipped_count > 0:
+                flash(f'跳过了 {skipped_count} 个已存在的关键词。', 'info')
+
         return redirect(url_for('keywords'))
 
     all_keywords = Keyword.query.all()
