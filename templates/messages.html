@@ -1,0 +1,91 @@
+<!-- C:\Users\Anonymous\Desktop\tele\templates\messages.html -->
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>消息日志</h2>
+    <div>
+        <!-- 刷新按钮的功能由筛选表单的重置按钮替代 -->
+        {% if messages %}
+        <a href="{{ url_for('clear_all_messages') }}" class="btn btn-warning" onclick="return confirm('确定要清空所有消息记录吗？此操作不可恢复。')">清空所有记录</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 筛选表单 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('messages') }}" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="group_name" class="form-label">按群组筛选</label>
+                <select id="group_name" name="group_name" class="form-select">
+                    <option value="">所有群组</option>
+                    {% for name in unique_group_names %}
+                    <option value="{{ name }}" {% if filter_values.group_name == name %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="start_date" class="form-label">开始日期</label>
+                <input type="date" id="start_date" name="start_date" value="{{ filter_values.start_date }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">结束日期</label>
+                <input type="date" id="end_date" name="end_date" value="{{ filter_values.end_date }}" class="form-control">
+            </div>
+            <div class="col-md-2 d-flex">
+                <button type="submit" class="btn btn-primary w-100 me-2">筛选</button>
+                <a href="{{ url_for('messages') }}" class="btn btn-secondary w-100">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4">
+    {% if messages %}
+        {% for message in messages %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                        {% set logo_path = group_logo_map.get(message.group_name) %}
+                        {% if logo_path %}
+                            <img src="{{ url_for('static', filename=logo_path) }}" alt="logo" width="50" height="50" class="rounded-circle">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                                {{ message.group_name[0] | upper if message.group_name }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="mb-0 text-primary">{{ message.group_name }}</h6>
+                                <small class="text-muted">发信人: {{ message.sender or '(未知来源)' }}</small>
+                            </div>
+                            <a href="{{ url_for('delete_message', message_id=message.id) }}" class="btn btn-outline-danger btn-sm" style="height: fit-content;" onclick="return confirm('确定要删除这条消息吗？')">删除</a>
+                        </div>
+                        <hr class="my-2">
+                        <p class="card-text mb-1"><strong>内容：</strong> {{ message.message_content }}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-success"><strong>关键词: {{ message.matched_keyword }}</strong></small>
+                            <small class="text-muted">{{ message.message_date.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center text-muted">
+                {% if filter_values.group_name or filter_values.start_date or filter_values.end_date %}
+                根据当前筛选条件，没有找到任何消息。
+                {% else %}
+                目前没有匹配到任何消息。
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

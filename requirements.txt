@@ -1,0 +1,6 @@
+Flask-SQLAlchemy
+Telethon
+requests
+PyMySQL
+Werkzeug
+Pillow
