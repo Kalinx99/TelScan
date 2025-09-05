@@ -7,7 +7,7 @@
 
 <div class="card mt-4">
     <div class="card-body">
-        <h5 class="card-title">添加新关键词</h5>
+        <h5 class="card-title">添加关键词</h5>
         {% if not groups %}
         <div class="alert alert-warning" role="alert">
           请先在 <a href="{{ url_for('groups') }}" class="alert-link">群组管理</a> 页面添加至少一个群组，然后才能添加关键词。
@@ -15,8 +15,9 @@
         {% else %}
         <form method="POST">
             <div class="mb-3">
-                <label for="keyword_text" class="form-label">关键词文本</label>
-                <input type="text" class="form-control" name="keyword_text" id="keyword_text" placeholder="输入关键词" required>
+                <label for="keywords_text" class="form-label">关键词 (一行一个)</label>
+                <textarea class="form-control" name="keywords_text" id="keywords_text" rows="5" placeholder="例如:&#10;关键词1&#10;关键词2&#10;关键词3" required></textarea>
+                <div class="form-text">您可以在此输入多个关键词，每行一个，它们将同时被添加到下方所选的群组中。</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">选择要监控的群组 (可多选)</label>
