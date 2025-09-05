@@ -46,6 +46,7 @@
 ```bash
 git clone https://github.com/wxwhhh/TelScan.git
 cd TelScan
+```bash
 
 第三步：启动环境  python3 app.py
 <img width="836" height="177" alt="14" src="https://github.com/user-attachments/assets/002db866-bad5-4feb-ab4d-d39b66490b16" />
