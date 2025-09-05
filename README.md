@@ -1,7 +1,4 @@
-# TelScan  明天上传代码，下班
-##### 🌐 Telegram群组内容监控系统
-搞了几天算是搞出来了，方便搞安全的师傅们监控一些群组中的关键内容。
-# 🌐 Telegram 群组内容监控系统
+# 🌐 Telegram 群组内容监控系统 - TelScan
 [![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com) [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  [![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
 
 #### 1、平台介绍
@@ -42,11 +39,8 @@
 <img width="574" height="539" alt="13" src="https://github.com/user-attachments/assets/926d67f7-b421-4175-810d-c889c9797de6" />
 
 第二步：pip源码下来，然后安装需要的库
-
-```bash
-git clone https://github.com/wxwhhh/TelScan.git
-cd TelScan
-```bash
+`git clone https://github.com/wxwhhh/TelScan.git`
+`cd TelScan`
 
 第三步：启动环境  python3 app.py
 <img width="836" height="177" alt="14" src="https://github.com/user-attachments/assets/002db866-bad5-4feb-ab4d-d39b66490b16" />
