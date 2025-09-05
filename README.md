@@ -2,9 +2,7 @@
 ##### 🌐 Telegram群组内容监控系统
 搞了几天算是搞出来了，方便搞安全的师傅们监控一些群组中的关键内容。
 # 🌐 Telegram 群组内容监控系统
-[![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com)  
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  
-[![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
+[![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com) [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  [![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
 
 #### 1、平台介绍
 平台调用telegram API对已加入的群组、频道或者是公开的群组、频道内容进行实时监控，然后web展示以及钉钉通知。
