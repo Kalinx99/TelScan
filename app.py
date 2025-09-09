@@ -276,8 +276,15 @@ def groups():
         
         return redirect(url_for('groups'))
     
-    all_groups = MonitoredGroup.query.order_by(MonitoredGroup.group_name).all()
-    return render_template('groups.html', groups=all_groups)
+    # 处理GET请求
+    search_query = request.args.get('q', '').strip()
+    
+    query = MonitoredGroup.query
+    if search_query:
+        query = query.filter(MonitoredGroup.group_name.ilike(f'%{search_query}%'))
+        
+    all_groups = query.order_by(MonitoredGroup.group_name).all()
+    return render_template('groups.html', groups=all_groups, search_query=search_query)
 
 @app.route('/add_my_groups', methods=['GET'])
 @login_required # 添加鉴权装饰器
@@ -344,6 +351,24 @@ def delete_group(group_id):
     flash('群组已删除。', 'info')
     return redirect(url_for('groups'))
 
+@app.route('/groups/batch_delete', methods=['POST'])
+@login_required
+def batch_delete_groups():
+    group_ids = request.form.getlist('group_ids')
+    if not group_ids:
+        flash('没有选择任何群组。', 'warning')
+        return redirect(url_for('groups'))
+
+    groups_to_delete = MonitoredGroup.query.filter(MonitoredGroup.id.in_(group_ids)).all()
+    
+    deleted_count = len(groups_to_delete)
+    for group in groups_to_delete:
+        db.session.delete(group)
+
+    db.session.commit()
+    flash(f'成功删除 {deleted_count} 个群组!', 'success')
+    return redirect(url_for('groups'))
+
 @app.route('/keywords', methods=['GET', 'POST'])
 @login_required # 添加鉴权装饰器
 def keywords():
@@ -380,9 +405,16 @@ def keywords():
 
         return redirect(url_for('keywords'))
 
-    all_keywords = Keyword.query.all()
+    # 处理GET请求
+    search_query = request.args.get('q', '').strip()
+    
+    query = Keyword.query
+    if search_query:
+        query = query.filter(Keyword.text.ilike(f'%{search_query}%'))
+
+    all_keywords = query.order_by(Keyword.id.desc()).all()
     all_groups = MonitoredGroup.query.all()
-    return render_template('keywords.html', keywords=all_keywords, groups=all_groups)
+    return render_template('keywords.html', keywords=all_keywords, groups=all_groups, search_query=search_query)
 
 @app.route('/keywords/edit/<int:keyword_id>', methods=['GET', 'POST'])
 @login_required # 添加鉴权装饰器
@@ -412,6 +444,25 @@ def delete_keyword(keyword_id):
     db.session.commit()
     flash('关键词已删除。', 'info')
     return redirect(url_for('keywords'))
+
+@app.route('/keywords/batch_delete', methods=['POST'])
+@login_required # 添加鉴权装饰器
+def batch_delete_keywords():
+    keyword_ids = request.form.getlist('keyword_ids')
+    if not keyword_ids:
+        flash('没有选择任何关键词。', 'warning')
+        return redirect(url_for('keywords'))
+        
+    keywords_to_delete = Keyword.query.filter(Keyword.id.in_(keyword_ids)).all()
+    
+    deleted_count = len(keywords_to_delete)
+    for keyword in keywords_to_delete:
+        db.session.delete(keyword)
+    
+    db.session.commit()
+    flash(f'成功删除 {deleted_count} 个关键词！', 'success')
+    return redirect(url_for('keywords'))
+
 
 @app.route('/messages')
 @login_required # 添加鉴权装饰器

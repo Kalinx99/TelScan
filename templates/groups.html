@@ -22,7 +22,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">添加新群组</h5>
-        <form method="POST" id="add-group-form">
+        <form method="POST" id="add-group-form" action="{{ url_for('groups') }}">
             <div class="input-group">
                 <input type="text" class="form-control" name="group_identifier" placeholder="输入群组的公开链接 (如 https://t.me/...) 或用户名 (如 @...)" required>
                 <button type="submit" class="btn btn-primary" id="add-group-btn">
@@ -39,38 +39,59 @@
 
 <div class="card">
     <div class="card-header">
-        已监控的群组列表
+        <div class="d-flex justify-content-between align-items-center">
+            <span>已监控的群组列表 ({{ groups|length }})</span>
+            <form action="{{ url_for('groups') }}" method="GET" style="width: 280px;">
+                <div class="input-group">
+                    <input class="form-control" type="search" placeholder="搜索群组名称..." name="q" value="{{ search_query or '' }}" aria-label="Search">
+                    <button class="btn btn-secondary" type="submit">搜索</button>
+                </div>
+            </form>
+        </div>
     </div>
     <div class="card-body">
         {% if groups %}
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                {% for group in groups %}
-                <div class="col">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body d-flex">
-                            <div class="flex-shrink-0">
-                                {% if group.logo_path %}
-                                    <img src="{{ url_for('static', filename=group.logo_path) }}" alt="logo" width="50" height="50" class="rounded-circle me-3">
-                                {% else %}
-                                    <div class="rounded-circle me-3 bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                                        {{ group.group_name[0] | upper }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="flex-grow-1 text-truncate">
-                                <h6 class="card-title text-truncate" title="{{ group.group_name }}">{{ group.group_name }}</h6>
-                                <small class="text-muted text-truncate d-block">ID: {{ group.group_identifier }}</small>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-transparent border-0 text-end pb-3">
+        <form action="{{ url_for('batch_delete_groups') }}" method="POST">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;"><input class="form-check-input" type="checkbox" id="select-all-groups-checkbox"></th>
+                        <th style="width: 10%;">Logo</th>
+                        <th style="width: 40%;">群组名称</th>
+                        <th style="width: 30%;">群组ID</th>
+                        <th style="width: 15%;" class="text-end">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                    <tr>
+                        <td><input class="form-check-input group-checkbox" type="checkbox" name="group_ids" value="{{ group.id }}"></td>
+                        <td>
+                            {% if group.logo_path %}
+                                <img src="{{ url_for('static', filename=group.logo_path) }}" alt="logo" width="40" height="40" class="rounded-circle">
+                            {% else %}
+                                <img src="https://via.placeholder.com/40/6c757d/FFFFFF?text={{ group.group_name[0] | upper }}" alt="logo" class="rounded-circle">
+                            {% endif %}
+                        </td>
+                        <td class="text-truncate">{{ group.group_name }}</td>
+                        <td><code class="user-select-all">{{ group.group_identifier }}</code></td>
+                        <td class="text-end">
                              <a href="{{ url_for('delete_group', group_id=group.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定要删除吗？')">删除</a>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-danger" onclick="return confirm('确定要删除所有选中的群组吗？')">删除选中</button>
+        </form>
         {% else %}
-            <p class="text-center text-muted">还没有添加任何群组。</p>
+            <p class="text-center text-muted">
+                {% if search_query %}
+                没有找到匹配 "<strong>{{ search_query }}</strong>" 的群组。
+                {% else %}
+                还没有添加任何群组。
+                {% endif %}
+            </p>
         {% endif %}
     </div>
 </div>
@@ -249,6 +270,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearInterval(intervalId);
                 console.error('状态更新请求失败:', error);
             });
+    }
+
+    // 新增：群组列表的全选/取消全选逻辑
+    const selectAllGroupsCheckbox = document.getElementById('select-all-groups-checkbox');
+    const groupCheckboxes = document.querySelectorAll('.group-checkbox');
+
+    if(selectAllGroupsCheckbox && groupCheckboxes.length > 0) {
+        selectAllGroupsCheckbox.addEventListener('click', function() {
+            groupCheckboxes.forEach(cb => {
+                cb.checked = selectAllGroupsCheckbox.checked;
+            });
+        });
+
+        groupCheckboxes.forEach(cb => {
+            cb.addEventListener('click', function() {
+                if (!this.checked) {
+                    selectAllGroupsCheckbox.checked = false;
+                } else {
+                    const allChecked = Array.from(groupCheckboxes).every(gcb => gcb.checked);
+                    selectAllGroupsCheckbox.checked = allChecked;
+                }
+            });
+        });
     }
 });
 </script>
