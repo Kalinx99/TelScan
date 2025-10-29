@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+{% block title %}导出消息{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>导出群组历史消息</h2>
+    <p>选择一个已监控的群组，将其所有历史消息导出为JSON文件。</p>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">开始新的导出任务</h5>
+            <form id="start-export-form">
+                <div class="form-group">
+                    <label for="group-select">选择群组</label>
+                    <select class="form-control" id="group-select" name="group_identifier">
+                        {% for group in groups %}
+                            <option value="{{ group.group_identifier }}">{{ group.group_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="format-select">选择格式</label>
+                    <select class="form-control" id="format-select" name="file_format">
+                        <option value="json" selected>JSON</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">开始导出</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">导出任务列表</h5>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>群组</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="task-list">
+                    {% for task in tasks %}
+                    <tr id="task-{{ task.id }}">
+                        <td>{{ task.group_name }}</td>
+                        <td>
+                            <span class="status-badge" data-status="{{ task.status }}">{{ task.status }}</span>
+                            {% if task.log %}<small class="text-muted" data-toggle="tooltip" title="{{ task.log }}"> (查看日志)</small>{% endif %}
+                        </td>
+                        <td>{{ task.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if task.status == 'completed' and task.file_path %}
+                                <a href="{{ url_for('download_export', task_id=task.id) }}" class="btn btn-success btn-sm">下载</a>
+                            {% elif task.status == 'running' %}
+                                <button class="btn btn-warning btn-sm" onclick="stopTask('{{ task.id }}')">停止</button>
+                            {% endif %}
+                            <button class="btn btn-danger btn-sm" onclick="deleteTask('{{ task.id }}')">删除</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-badge {
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    color: #fff;
+}
+.status-badge[data-status="pending"] { background-color: #6c757d; }
+.status-badge[data-status="running"] { background-color: #007bff; }
+.status-badge[data-status="completed"] { background-color: #28a745; }
+.status-badge[data-status="error"] { background-color: #dc3545; }
+.status-badge[data-status="stopped"] { background-color: #ffc107; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip();
+
+    $('#start-export-form').submit(function(e) {
+        e.preventDefault();
+        var groupId = $('#group-select').val();
+        var fileFormat = $('#format-select').val();
+        $.post("{{ url_for('start_export') }}", { group_identifier: groupId, file_format: fileFormat }, function(data) {
+            if (data.success) {
+                location.reload(); 
+            } else {
+                alert('错误: ' + data.error);
+            }
+        });
+    });
+
+    function pollTaskStatus() {
+        $('#task-list tr').each(function() {
+            var row = $(this);
+            var taskId = row.attr('id').replace('task-', '');
+            var statusCell = row.find('.status-badge');
+            var currentStatus = statusCell.data('status');
+
+            if (currentStatus === 'running' || currentStatus === 'pending') {
+                $.get('/task_status/' + taskId, function(data) {
+                    if (data.status !== currentStatus) {
+                        location.reload(); 
+                    }
+                });
+            }
+        });
+    }
+
+    setInterval(pollTaskStatus, 5000); 
+});
+
+function stopTask(taskId) {
+    if (confirm('确定要停止这个任务吗？')) {
+        $.post('/stop_task/' + taskId, function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('停止任务失败: ' + data.error);
+            }
+        });
+    }
+}
+
+function deleteTask(taskId) {
+    if (confirm('确定要删除这个任务记录吗？')) {
+        $.post('/delete_task/' + taskId, function(data) {
+            if (data.success) {
+                $('#task-' + taskId).remove();
+            } else {
+                alert('删除失败: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

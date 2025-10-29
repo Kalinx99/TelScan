@@ -1,11 +1,9 @@
-<!-- C:\Users\Anonymous\Desktop\tele\templates\messages.html -->
 {% extends 'layout.html' %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>消息日志</h2>
     <div>
-        <!-- 刷新按钮的功能由筛选表单的重置按钮替代 -->
         {% if messages %}
         <a href="{{ url_for('clear_all_messages') }}" class="btn btn-warning" onclick="return confirm('确定要清空所有消息记录吗？此操作不可恢复。')">清空所有记录</a>
         {% endif %}
@@ -16,7 +14,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" action="{{ url_for('messages') }}" class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="group_name" class="form-label">按群组筛选</label>
                 <select id="group_name" name="group_name" class="form-select">
                     <option value="">所有群组</option>
@@ -26,16 +24,30 @@
                 </select>
             </div>
             <div class="col-md-3">
+                <label for="keyword" class="form-label">关键词搜索</label>
+                <input type="text" id="keyword" name="keyword" value="{{ filter_values.keyword }}" class="form-control" placeholder="在消息内容中搜索...">
+            </div>
+            <div class="col-md-2">
                 <label for="start_date" class="form-label">开始日期</label>
                 <input type="date" id="start_date" name="start_date" value="{{ filter_values.start_date }}" class="form-control">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="end_date" class="form-label">结束日期</label>
                 <input type="date" id="end_date" name="end_date" value="{{ filter_values.end_date }}" class="form-control">
             </div>
             <div class="col-md-2 d-flex">
                 <button type="submit" class="btn btn-primary w-100 me-2">筛选</button>
                 <a href="{{ url_for('messages') }}" class="btn btn-secondary w-100">重置</a>
+            </div>
+        </form>
+        <!-- 导出按钮 -->
+        <form method="GET" action="{{ url_for('export_messages') }}" class="row g-3 align-items-end mt-2">
+            <div class="col-md-12">
+                <input type="hidden" name="group_name" value="{{ filter_values.group_name | default('') }}">
+                <input type="hidden" name="start_date" value="{{ filter_values.start_date | default('') }}">
+                <input type="hidden" name="end_date" value="{{ filter_values.end_date | default('') }}">
+                <input type="hidden" name="keyword" value="{{ filter_values.keyword | default('') }}">
+                <button type="submit" class="btn btn-success w-100">导出为 CSV</button>
             </div>
         </form>
     </div>
@@ -53,7 +65,7 @@
                             <img src="{{ url_for('static', filename=logo_path) }}" alt="logo" width="50" height="50" class="rounded-circle">
                         {% else %}
                             <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                                {{ message.group_name[0] | upper if message.group_name }}
+                                {{ message.group_name[0] | upper if message.group_name else '' }}
                             </div>
                         {% endif %}
                     </div>
