@@ -67,6 +67,9 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'messages' %}active{% endif %}" href="{{ url_for('messages') }}">消息日志</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'export_page' %}active{% endif %}" href="{{ url_for('export_page') }}">历史消息导出</a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
@@ -111,8 +114,11 @@
 </footer>
 
 <!-- 本地 Bootstrap JS 和 Popper.js -->
+<script src="{{ url_for('static', filename='js_css/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js_css/popper.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js_css/bootstrap.min.js') }}"></script>
+
+{% block scripts %}{% endblock %}
 
 </body>
 </html>

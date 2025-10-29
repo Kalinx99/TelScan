@@ -104,3 +104,15 @@ class Session(db.Model):
     expiration_time = db.Column(db.DateTime, nullable=False)
 
     __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}
+
+class ExportTask(db.Model):
+    __tablename__ = 'export_task'
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_identifier = db.Column(db.String(191), nullable=False)
+    group_name = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(50), default='pending') # pending, running, completed, error
+    file_path = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    log = db.Column(db.Text, nullable=True)
+
+    __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}

@@ -4,3 +4,5 @@ requests
 PyMySQL
 Werkzeug
 Pillow
+pandas
+waitress
