@@ -15,7 +15,64 @@ import json
 import csv
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 from datetime import datetime
-from database import get_session, ExportTask
+from database import get_session, ExportTask, MonitoredGroup
+
+async def update_monitored_groups_info_async():
+    client = telegram_monitor.client_instance
+    if not (client and client.is_connected()):
+        return {'error': '监控客户端未运行或未连接。'}
+
+    db_session = get_session()
+    try:
+        monitored_groups = db_session.query(MonitoredGroup).all()
+        if not monitored_groups:
+            return {'updated_count': 0}
+
+        updated_count = 0
+        for group in monitored_groups:
+            try:
+                entity = await client.get_entity(int(group.group_identifier))
+                
+                # Update group name
+                if entity.title != group.group_name:
+                    group.group_name = entity.title
+                    db_session.commit()
+
+                # Update logo
+                logo_dir = os.path.join(basedir, 'static', 'logos')
+                os.makedirs(logo_dir, exist_ok=True)
+                logo_filename = f"{entity.id}.jpg"
+                logo_abs_path = os.path.join(logo_dir, logo_filename)
+                
+                path = await client.download_profile_photo(entity, file=logo_abs_path)
+                if path:
+                    logo_rel_path = f"logos/{logo_filename}"
+                    if group.logo_path != logo_rel_path:
+                        group.logo_path = logo_rel_path
+                        db_session.commit()
+                
+                updated_count += 1
+            except Exception as e:
+                print(f"Could not update group {group.group_identifier}: {e}")
+                continue
+        
+        return {'updated_count': updated_count}
+    finally:
+        db_session.close()
+
+def update_monitored_groups_info():
+    if not telegram_monitor.main_loop:
+        return {'error': '事件循环未准备好。'}
+    
+    future = asyncio.run_coroutine_threadsafe(
+        update_monitored_groups_info_async(), 
+        telegram_monitor.main_loop
+    )
+    
+    try:
+        return future.result(timeout=60)
+    except Exception as e:
+        return {'error': f'执行时发生错误: {e}'}
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 

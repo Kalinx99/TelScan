@@ -16,7 +16,7 @@ import logging
 
 from database import db, Config, MonitoredGroup, Keyword, MatchedMessage, DB_URI, User, Session, ExportTask
 from telegram_monitor import start_monitoring, stop_monitoring, is_running
-from telegram_utils import get_group_details, get_my_groups, batch_join_groups, run_export_task
+from telegram_utils import get_group_details, get_my_groups, batch_join_groups, run_export_task, update_monitored_groups_info
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
@@ -300,6 +300,16 @@ def groups():
         
     all_groups = query.order_by(MonitoredGroup.group_name).all()
     return render_template('groups.html', groups=all_groups, search_query=search_query)
+
+@app.route('/update_groups')
+@login_required
+def update_groups():
+    result = update_monitored_groups_info()
+    if result.get('error'):
+        flash(f"更新失败: {result['error']}", 'danger')
+    else:
+        flash(f"成功更新 {result.get('updated_count', 0)} 个群组的信息。", 'success')
+    return redirect(url_for('groups'))
 
 @app.route('/add_my_groups', methods=['GET'])
 @login_required
