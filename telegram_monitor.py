@@ -1,5 +1,7 @@
 import asyncio
 import threading
+import logging
+logging.getLogger('telethon').setLevel(logging.WARNING)
 from datetime import datetime
 import requests
 import time
