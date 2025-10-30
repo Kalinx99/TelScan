@@ -311,16 +311,20 @@ def add_my_groups_page():
 def api_get_my_groups():
     try:
         monitored_ids = {g.group_identifier for g in MonitoredGroup.query.all()}
+        
+        result = get_my_groups()
+        if result.get('error'):
+            return jsonify({'error': result['error']}), 500
+        
+        my_groups = [g for g in result['groups'] if g['id'] not in monitored_ids]
+        
+        return jsonify({'groups': my_groups})
+    except Exception as e:
+        logger.error(f"Error in api_get_my_groups: {e}", exc_info=True)
+        return jsonify({'error': f'获取群组列表时发生内部错误: {e}'}), 500
     finally:
+        # 确保数据库会话被正确关闭，即使发生错误
         db.session.remove()
-
-    result = get_my_groups()
-    if result.get('error'):
-        return jsonify({'error': result['error']}), 500
-    
-    my_groups = [g for g in result['groups'] if g['id'] not in monitored_ids]
-    
-    return jsonify({'groups': my_groups})
 
 @app.route('/groups/batch_add', methods=['POST'])
 @login_required
