@@ -204,6 +204,8 @@ def run_in_thread(loop, coro):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(coro)
 
+
+
 def start_monitoring():
     global client_thread, is_running, main_loop
     
