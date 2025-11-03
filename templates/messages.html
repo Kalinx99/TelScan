@@ -23,6 +23,15 @@
                     {% endfor %}
                 </select>
             </div>
+            <div class="col-md-2">
+                <label for="keyword_group_id" class="form-label">按关键词分组</label>
+                <select id="keyword_group_id" name="keyword_group_id" class="form-select">
+                    <option value="">所有分组</option>
+                    {% for group in keyword_groups %}
+                    <option value="{{ group.id }}" {% if filter_values.keyword_group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="col-md-3">
                 <label for="keyword" class="form-label">关键词搜索</label>
                 <input type="text" id="keyword" name="keyword" value="{{ filter_values.keyword }}" class="form-control" placeholder="在消息内容中搜索...">
@@ -47,6 +56,7 @@
                 <input type="hidden" name="start_date" value="{{ filter_values.start_date | default('') }}">
                 <input type="hidden" name="end_date" value="{{ filter_values.end_date | default('') }}">
                 <input type="hidden" name="keyword" value="{{ filter_values.keyword | default('') }}">
+                <input type="hidden" name="keyword_group_id" value="{{ filter_values.keyword_group_id | default('') }}">
                 <button type="submit" class="btn btn-success w-100">导出为 CSV</button>
             </div>
         </form>

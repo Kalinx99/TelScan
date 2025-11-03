@@ -14,10 +14,24 @@
         </div>
         {% else %}
         <form method="POST">
-            <div class="mb-3">
-                <label for="keywords_text" class="form-label">关键词 (一行一个)</label>
-                <textarea class="form-control" name="keywords_text" id="keywords_text" rows="5" placeholder="例如:&#10;关键词1&#10;关键词2&#10;关键词3" required></textarea>
-                <div class="form-text">您可以在此输入多个关键词，每行一个，它们将同时被添加到下方所选的群组中。</div>
+            <div class="row">
+                <div class="col-md-8">
+                    <label for="keywords_text" class="form-label">关键词 (一行一个)</label>
+                    <textarea class="form-control" name="keywords_text" id="keywords_text" rows="5" placeholder="例如:&#10;关键词1&#10;关键词2&#10;关键词3" required></textarea>
+                    <div class="form-text">您可以在此输入多个关键词，每行一个，它们将同时被添加到下方所选的群组中。</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="keyword_group_id" class="form-label">选择分组</label>
+                    <div class="input-group">
+                        <select class="form-select" name="keyword_group_id" id="keyword_group_id">
+                            <option value="">未分组</option>
+                            {% for group in keyword_groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <a href="{{ url_for('keyword_groups') }}" class="btn btn-outline-secondary">管理分组</a>
+                    </div>
+                </div>
             </div>
             <div class="mb-3">
                 <label class="form-label">选择要监控的群组 (可多选)</label>
@@ -46,12 +60,20 @@
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
             <span>关键词列表 ({{ keywords|length }})</span>
-            <form action="{{ url_for('keywords') }}" method="GET" style="width: 280px;">
-                <div class="input-group">
-                    <input class="form-control" type="search" placeholder="搜索关键词..." name="q" value="{{ search_query or '' }}" aria-label="Search">
-                    <button class="btn btn-secondary" type="submit">搜索</button>
-                </div>
-            </form>
+            <div class="d-flex gap-2" style="width: 500px;">
+                <form action="{{ url_for('keywords') }}" method="GET" class="d-flex gap-2 flex-grow-1">
+                    <select class="form-select" name="group_id" onchange="this.form.submit()">
+                        <option value="">所有分组</option>
+                        {% for group in keyword_groups %}
+                        <option value="{{ group.id }}" {% if group.id == group_filter_id %}selected{% endif %}>{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="input-group">
+                        <input class="form-control" type="search" placeholder="搜索关键词..." name="q" value="{{ search_query or '' }}" aria-label="Search">
+                        <button class="btn btn-secondary" type="submit">搜索</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     <div class="card-body">
@@ -61,8 +83,9 @@
                 <thead>
                     <tr>
                         <th style="width: 5%;"><input class="form-check-input" type="checkbox" id="select-all-keywords"></th>
-                        <th style="width: 30%;">关键词</th>
-                        <th style="width: 50%;">关联群组</th>
+                        <th style="width: 25%;">关键词</th>
+                        <th style="width: 15%;">分组</th>
+                        <th style="width: 45%;">关联群组</th>
                         <th style="width: 15%;" class="text-end">操作</th>
                     </tr>
                 </thead>
@@ -71,6 +94,13 @@
                     <tr>
                         <td><input class="form-check-input keyword-checkbox" type="checkbox" name="keyword_ids" value="{{ keyword.id }}"></td>
                         <td>{{ keyword.text }}</td>
+                        <td>
+                            {% if keyword.keyword_group %}
+                                <span class="badge bg-primary">{{ keyword.keyword_group.name }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">未分组</span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="d-flex flex-wrap gap-1">
                                 {% for group in keyword.groups %}

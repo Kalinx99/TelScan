@@ -1,0 +1,41 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>关键词分组管理</h2>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">{% if group_to_edit %}编辑分组{% else %}创建新分组{% endif %}</h5>
+        <form action="{% if group_to_edit %}{{ url_for('edit_keyword_group', group_id=group_to_edit.id) }}{% else %}{{ url_for('keyword_groups') }}{% endif %}" method="POST">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="输入分组名称" name="group_name" value="{{ group_to_edit.name if group_to_edit else '' }}" required>
+                <button class="btn btn-primary" type="submit">{% if group_to_edit %}更新{% else %}创建{% endif %}</button>
+                {% if group_to_edit %}
+                <a href="{{ url_for('keyword_groups') }}" class="btn btn-secondary">取消</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">分组列表</div>
+    <div class="card-body">
+        {% if groups %}
+        <ul class="list-group">
+            {% for group in groups %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ group.name }}
+                <div>
+                    <a href="{{ url_for('edit_keyword_group', group_id=group.id) }}" class="btn btn-outline-secondary btn-sm">编辑</a>
+                    <a href="{{ url_for('delete_keyword_group', group_id=group.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定要删除这个分组吗？')">删除</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">还没有任何关键词分组。</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -69,8 +69,19 @@ class Keyword(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String(191), unique=True, nullable=False)
     groups = db.relationship('MonitoredGroup', secondary=group_keyword_association, back_populates='keywords')
+    keyword_group_id = db.Column(db.Integer, db.ForeignKey('keyword_group.id'), nullable=True)
 
     __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}
+
+
+class KeywordGroup(db.Model):
+    __tablename__ = 'keyword_group'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    keywords = db.relationship('Keyword', backref='keyword_group', lazy=True)
+
+    __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}
+
 
 class MatchedMessage(db.Model):
     __tablename__ = 'matched_message'

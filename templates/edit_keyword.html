@@ -8,8 +8,18 @@
 <div class="card mt-4">
     <div class="card-body">
         <form method="POST">
+<div class="mb-3">
+                <label for="keyword_group_id" class="form-label">分组</label>
+                <select class="form-select" name="keyword_group_id" id="keyword_group_id">
+                    <option value="">未分组</option>
+                    {% for group in keyword_groups %}
+                    <option value="{{ group.id }}" {% if keyword.keyword_group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="mb-3">
-                <label class="form-label">选择要监控的群-组 (可多选)</label>
+                <label class="form-label">选择要监控的群组 (可多选)</label>
                 <div class="mb-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm" id="select-all-groups">全选</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" id="deselect-all-groups">全不选</button>

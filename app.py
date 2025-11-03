@@ -14,8 +14,11 @@ from io import BytesIO
 import csv
 import logging
 
-from database import db, Config, MonitoredGroup, Keyword, MatchedMessage, DB_URI, User, Session, ExportTask
+from database import db, Config, MonitoredGroup, Keyword, MatchedMessage, DB_URI, User, Session, ExportTask, KeywordGroup
 from telegram_monitor import start_monitoring, stop_monitoring, is_running
+
+
+
 from telegram_utils import get_group_details, get_my_groups, batch_join_groups, run_export_task, update_monitored_groups_info
 
 # Configure logging
@@ -395,12 +398,74 @@ def batch_delete_groups():
     flash(f'成功删除 {deleted_count} 个群组!', 'success')
     return redirect(url_for('groups'))
 
+@app.route('/keyword_groups', methods=['GET', 'POST'])
+@login_required
+def keyword_groups():
+    if request.method == 'POST':
+        group_name = request.form.get('group_name', '').strip()
+        if group_name:
+            existing_group = KeywordGroup.query.filter_by(name=group_name).first()
+            if not existing_group:
+                new_group = KeywordGroup(name=group_name)
+                db.session.add(new_group)
+                db.session.commit()
+                flash(f'分组 "{group_name}" 已成功创建。', 'success')
+            else:
+                flash(f'分组 "{group_name}" 已存在。', 'warning')
+        else:
+            flash('分组名称不能为空。', 'danger')
+        return redirect(url_for('keyword_groups'))
+
+    groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
+    return render_template('keyword_groups.html', groups=groups)
+
+    return render_template('keyword_groups.html', groups=groups)
+
+@app.route('/keyword_groups/edit/<int:group_id>', methods=['GET', 'POST'])
+@login_required
+def edit_keyword_group(group_id):
+    group_to_edit = KeywordGroup.query.get_or_404(group_id)
+    if request.method == 'POST':
+        new_name = request.form.get('group_name', '').strip()
+        if new_name:
+            existing_group = KeywordGroup.query.filter(KeywordGroup.name == new_name, KeywordGroup.id != group_id).first()
+            if not existing_group:
+                group_to_edit.name = new_name
+                db.session.commit()
+                flash(f'分组已更新为 "{new_name}"。', 'success')
+                return redirect(url_for('keyword_groups'))
+            else:
+                flash(f'分组名称 "{new_name}" 已被其他分组使用。', 'warning')
+        else:
+            flash('分组名称不能为空。', 'danger')
+        return redirect(url_for('edit_keyword_group', group_id=group_id))
+
+    all_groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
+    return render_template('keyword_groups.html', groups=all_groups, group_to_edit=group_to_edit)
+
+@app.route('/keyword_groups/delete/<int:group_id>')
+@login_required
+def delete_keyword_group(group_id):
+    group_to_delete = KeywordGroup.query.get_or_404(group_id)
+    
+    # 将关联的关键词分组设置为None
+    for keyword in group_to_delete.keywords:
+        keyword.keyword_group_id = None
+    db.session.commit()
+
+    db.session.delete(group_to_delete)
+    db.session.commit()
+    
+    flash(f'分组 "{group_to_delete.name}" 已被删除，其下的关键词已移至未分组。', 'info')
+    return redirect(url_for('keyword_groups'))
+
 @app.route('/keywords', methods=['GET', 'POST'])
 @login_required
 def keywords():
     if request.method == 'POST':
         keywords_text = request.form.get('keywords_text', '').strip()
         group_ids = request.form.getlist('groups')
+        keyword_group_id = request.form.get('keyword_group_id')
 
         if not keywords_text:
             flash('关键词列表不能为空。', 'danger')
@@ -417,7 +482,7 @@ def keywords():
                 if existing_keyword:
                     skipped_count += 1
                 else:
-                    new_keyword = Keyword(text=keyword_text)
+                    new_keyword = Keyword(text=keyword_text, keyword_group_id=keyword_group_id if keyword_group_id else None)
                     new_keyword.groups.extend(groups)
                     db.session.add(new_keyword)
                     added_count += 1
@@ -433,14 +498,24 @@ def keywords():
 
     # 处理GET请求
     search_query = request.args.get('q', '').strip()
+    group_filter_id = request.args.get('group_id', type=int)
     
     query = Keyword.query
     if search_query:
         query = query.filter(Keyword.text.ilike(f'%{search_query}%'))
+    if group_filter_id:
+        query = query.filter(Keyword.keyword_group_id == group_filter_id)
 
     all_keywords = query.order_by(Keyword.id.desc()).all()
     all_groups = MonitoredGroup.query.all()
-    return render_template('keywords.html', keywords=all_keywords, groups=all_groups, search_query=search_query)
+    keyword_groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
+    
+    return render_template('keywords.html', 
+                           keywords=all_keywords, 
+                           groups=all_groups, 
+                           keyword_groups=keyword_groups,
+                           search_query=search_query,
+                           group_filter_id=group_filter_id)
 
 @app.route('/keywords/edit/<int:keyword_id>', methods=['GET', 'POST'])
 @login_required
@@ -448,18 +523,26 @@ def edit_keyword(keyword_id):
     keyword_to_edit = Keyword.query.get_or_404(keyword_id)
     if request.method == 'POST':
         group_ids = request.form.getlist('groups')
+        keyword_group_id = request.form.get('keyword_group_id')
+
         if not group_ids:
             flash('必须至少选择一个群组。', 'danger')
         else:
             groups = MonitoredGroup.query.filter(MonitoredGroup.id.in_(group_ids)).all()
-            keyword_to_edit.groups = groups 
+            keyword_to_edit.groups = groups
+            keyword_to_edit.keyword_group_id = keyword_group_id if keyword_group_id else None
             db.session.commit()
             flash('关键词关联已更新！', 'success')
         return redirect(url_for('keywords'))
 
     all_groups = MonitoredGroup.query.all()
+    keyword_groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
     linked_group_ids = {group.id for group in keyword_to_edit.groups}
-    return render_template('edit_keyword.html', keyword=keyword_to_edit, groups=all_groups, linked_group_ids=linked_group_ids)
+    return render_template('edit_keyword.html', 
+                           keyword=keyword_to_edit, 
+                           groups=all_groups, 
+                           keyword_groups=keyword_groups,
+                           linked_group_ids=linked_group_ids)
 
 @app.route('/keywords/delete/<int:keyword_id>')
 @login_required
@@ -496,13 +579,14 @@ def messages():
     start_date_filter = request.args.get('start_date', '')
     end_date_filter = request.args.get('end_date', '')
     keyword_filter = request.args.get('keyword', '')
+    keyword_group_filter_id = request.args.get('keyword_group_id', type=int)
 
     query = MatchedMessage.query
 
     if group_filter:
         query = query.filter(MatchedMessage.group_name == group_filter)
     if keyword_filter:
-        query = query.filter(MatchedMessage.message_content.ilike(f'%{keyword_filter}%'))
+        query = query.filter(MatchedMessage.matched_keyword.ilike(f'%{keyword_filter}%'))
     if start_date_filter:
         try:
             start_date = datetime.strptime(start_date_filter, '%Y-%m-%d').date()
@@ -516,6 +600,13 @@ def messages():
             query = query.filter(MatchedMessage.message_date <= end_of_day)
         except ValueError:
             flash('无效的结束日期格式，请使用 YYYY-MM-DD。', 'danger')
+    
+    if keyword_group_filter_id:
+        keyword_group = KeywordGroup.query.get(keyword_group_filter_id)
+        if keyword_group:
+            keywords_in_group = [k.text for k in keyword_group.keywords]
+            if keywords_in_group:
+                query = query.filter(MatchedMessage.matched_keyword.in_(keywords_in_group))
 
     try:
         matched_messages = query.order_by(MatchedMessage.message_date.desc()).all()
@@ -530,11 +621,14 @@ def messages():
     all_groups = MonitoredGroup.query.all()
     group_logo_map = {g.group_name: g.logo_path for g in all_groups}
     
+    keyword_groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
+
     filter_values = {
         'group_name': group_filter,
         'start_date': start_date_filter,
         'end_date': end_date_filter,
-        'keyword': keyword_filter
+        'keyword': keyword_filter,
+        'keyword_group_id': keyword_group_filter_id
     }
     
     return render_template(
@@ -542,6 +636,7 @@ def messages():
         messages=matched_messages, 
         group_logo_map=group_logo_map,
         unique_group_names=unique_group_names,
+        keyword_groups=keyword_groups,
         filter_values=filter_values
     )
 
@@ -552,13 +647,14 @@ def export_messages():
     start_date_filter = request.args.get('start_date', '')
     end_date_filter = request.args.get('end_date', '')
     keyword_filter = request.args.get('keyword', '')
+    keyword_group_filter_id = request.args.get('keyword_group_id', type=int)
 
     query = MatchedMessage.query
 
     if group_filter:
         query = query.filter(MatchedMessage.group_name == group_filter)
     if keyword_filter:
-        query = query.filter(MatchedMessage.message_content.ilike(f'%{keyword_filter}%'))
+        query = query.filter(MatchedMessage.matched_keyword.ilike(f'%{keyword_filter}%'))
     if start_date_filter:
         try:
             start_date = datetime.strptime(start_date_filter, '%Y-%m-%d').date()
@@ -576,6 +672,13 @@ def export_messages():
             flash('无效的结束日期格式，请使用 YYYY-MM-DD。', 'danger')
             logger.error(f"Invalid end_date format: {end_date_filter}")
             return redirect(url_for('messages'))
+    
+    if keyword_group_filter_id:
+        keyword_group = KeywordGroup.query.get(keyword_group_filter_id)
+        if keyword_group:
+            keywords_in_group = [k.text for k in keyword_group.keywords]
+            if keywords_in_group:
+                query = query.filter(MatchedMessage.matched_keyword.in_(keywords_in_group))
 
     try:
         matched_messages = query.order_by(MatchedMessage.message_date.desc()).all()
@@ -638,8 +741,9 @@ def clear_all_messages():
 @login_required
 def export_page():
     groups = MonitoredGroup.query.order_by(MonitoredGroup.group_name).all()
+    keyword_groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
     tasks = ExportTask.query.order_by(ExportTask.created_at.desc()).all()
-    return render_template('export.html', groups=groups, tasks=tasks)
+    return render_template('export.html', groups=groups, keyword_groups=keyword_groups, tasks=tasks)
 
 @app.route('/start_export', methods=['POST'])
 @login_required
