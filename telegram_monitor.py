@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from telethon import TelegramClient, events
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+import telegram_utils
 
 from database import Config, MonitoredGroup, Keyword, MatchedMessage, DB_URI
 
@@ -19,6 +20,9 @@ client_thread = None
 is_running = False
 main_loop = None
 client_ready = threading.Event()
+
+logo_update_thread = None
+logo_updater_running = False
 
 def get_db_session():
     engine = create_engine(DB_URI)
@@ -204,8 +208,30 @@ def run_in_thread(loop, coro):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(coro)
 
+def logo_update_scheduler():
+    global logo_updater_running
+    print("Logo update scheduler started.")
+    while logo_updater_running:
+        client_ready.wait(timeout=60) 
+        if not logo_updater_running:
+            break
+        
+        if client_instance and is_running:
+            print("Running logo update...")
+            coro = telegram_utils.update_group_logos_async()
+            future = asyncio.run_coroutine_threadsafe(coro, main_loop)
+            try:
+                future.result(timeout=300) # 5 minutes timeout
+            except Exception as e:
+                print(f"An error occurred during logo update: {e}")
+        else:
+            print("Client not ready, skipping logo update cycle.")
+        
+        time.sleep(3600) # 1 hour
+    print("Logo update scheduler stopped.")
+
 def start_monitoring():
-    global client_thread, is_running, main_loop
+    global client_thread, is_running, main_loop, logo_update_thread, logo_updater_running
     
     if client_thread and client_thread.is_alive():
         print("监控已经在运行中。")
@@ -228,10 +254,20 @@ def start_monitoring():
     client_thread.daemon = True
     client_thread.start()
 
+    logo_updater_running = True
+    logo_update_thread = threading.Thread(target=logo_update_scheduler)
+    logo_update_thread.daemon = True
+    logo_update_thread.start()
+
 def stop_monitoring():
-    global client_instance, is_running, client_thread, main_loop
+    global client_instance, is_running, client_thread, main_loop, logo_update_thread, logo_updater_running
     if not (client_thread and client_thread.is_alive()):
         return
+
+    logo_updater_running = False
+    if logo_update_thread and logo_update_thread.is_alive():
+        logo_update_thread.join(timeout=5)
+    logo_update_thread = None
 
     if main_loop and main_loop.is_running():
         main_loop.call_soon_threadsafe(
