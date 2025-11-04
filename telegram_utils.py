@@ -299,12 +299,20 @@ async def export_messages_async(task_id, group_identifier, file_format, update_c
         messages_data = []
         total_messages = 0
         
+        senders_cache = {} # Cache for sender names
         async for message in client.iter_messages(entity):
             total_messages += 1
-            sender = await message.get_sender()
+            
             sender_name = "N/A"
-            if sender:
-                sender_name = getattr(sender, 'username', None) or f"{getattr(sender, 'first_name', '')} {getattr(sender, 'last_name', '')}".strip()
+            if message.sender_id:
+                if message.sender_id in senders_cache:
+                    sender_name = senders_cache[message.sender_id]
+                else:
+                    sender = await message.get_sender()
+                    if sender:
+                        sender_name = getattr(sender, 'username', None) or f"{getattr(sender, 'first_name', '')} {getattr(sender, 'last_name', '')}".strip()
+                    # Even if sender is None, cache the result to avoid re-fetching
+                    senders_cache[message.sender_id] = sender_name
 
             message_text = message.text or ""
             if message.photo:
@@ -397,9 +405,15 @@ async def export_media_by_ids_async(task_id, group_identifier, message_ids, upda
         downloaded_count = 0
         failed_count = 0
         
+        update_callback(task_id, 'running', log_message=f'正在批量获取 {len(message_ids)} 条消息...')
+        all_messages = await client.get_messages(entity, ids=message_ids)
+        valid_messages = [m for m in all_messages if m]
+        update_callback(task_id, 'running', log_message=f'已获取 {len(valid_messages)} 条有效消息，开始下载媒体...')
+
         with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for i, msg_id in enumerate(message_ids):
-                update_callback(task_id, 'running', log_message=f'正在处理消息ID {msg_id} ({i+1}/{len(message_ids)})...')
+            for i, message in enumerate(valid_messages):
+                msg_id = message.id
+                update_callback(task_id, 'running', log_message=f'正在处理消息ID {msg_id} ({i+1}/{len(valid_messages)})...')
                 
                 # Check for stop request
                 db_session = get_session()
@@ -414,11 +428,7 @@ async def export_media_by_ids_async(task_id, group_identifier, message_ids, upda
                     db_session.close()
 
                 try:
-                    # Fetch message directly from Telegram
-                    messages = await client.get_messages(entity, ids=msg_id)
-                    message = messages[0] if messages else None
-
-                    if message and message.media:
+                    if message.media:
                         # Create a temporary file path for download
                         temp_download_path = os.path.join(exports_dir, f"temp_media_{msg_id}")
                         
@@ -437,9 +447,10 @@ async def export_media_by_ids_async(task_id, group_identifier, message_ids, upda
                             logger.warning(f"Message {msg_id} has media but failed to download.")
                             update_callback(task_id, 'running', log_message=f'消息ID {msg_id} 媒体下载失败。')
                     else:
+                        # This case should ideally not be hit if we only process valid_messages with media, but as a safeguard:
                         failed_count += 1
-                        logger.warning(f"Message {msg_id} has no media or message not found.")
-                        update_callback(task_id, 'running', log_message=f'消息ID {msg_id} 未找到媒体或消息不存在。')
+                        logger.warning(f"Message {msg_id} was fetched but has no media.")
+                        update_callback(task_id, 'running', log_message=f'消息ID {msg_id} 无媒体文件。')
 
                 except Exception as e:
                     failed_count += 1
