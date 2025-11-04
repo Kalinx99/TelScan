@@ -304,23 +304,19 @@ async def export_messages_async(task_id, group_identifier, file_format, update_c
             if sender:
                 sender_name = getattr(sender, 'username', None) or f"{getattr(sender, 'first_name', '')} {getattr(sender, 'last_name', '')}".strip()
 
+            message_text = message.text or ""
+            if message.photo:
+                message_text += f" [图片-{message.id}]"
+            elif message.video:
+                message_text += f" [视频-{message.id}]"
+
             message_info = {
                 'message_id': message.id,
                 'sender': sender_name,
-                'text': message.text,
+                'text': message_text,
                 'date': message.date.isoformat(),
-                'reply_to_message_id': message.reply_to_msg_id,
-                'media': None
+                'reply_to_message_id': message.reply_to_msg_id
             }
-
-            if message.media:
-                if isinstance(message.media, MessageMediaPhoto):
-                    message_info['media'] = 'Photo'
-                elif isinstance(message.media, MessageMediaDocument):
-                    message_info['media'] = f"Document: {message.media.document.attributes[0].file_name}"
-                else:
-                    message_info['media'] = 'Other Media'
-
             messages_data.append(message_info)
 
             if total_messages % 100 == 0:
