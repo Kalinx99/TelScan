@@ -398,6 +398,41 @@ def batch_delete_groups():
     flash(f'成功删除 {deleted_count} 个群组!', 'success')
     return redirect(url_for('groups'))
 
+
+@app.route('/group/edit/<int:group_id>', methods=['GET', 'POST'], endpoint='edit_group_keywords')
+@login_required
+def edit_group_keywords(group_id):
+    group = MonitoredGroup.query.get_or_404(group_id)
+    
+    if request.method == 'POST':
+        selected_keyword_ids = request.form.getlist('keyword_ids')
+        
+        # Efficiently update associations
+        group.keywords.clear()
+        if selected_keyword_ids:
+            newly_selected_keywords = Keyword.query.filter(Keyword.id.in_(selected_keyword_ids)).all()
+            group.keywords.extend(newly_selected_keywords)
+        
+        db.session.commit()
+        flash(f'群组 "{group.group_name}" 的关键词关联已更新！', 'success')
+        return redirect(url_for('groups'))
+
+    # For GET request
+    # Fetch all keyword groups with their keywords
+    keyword_groups = KeywordGroup.query.order_by(KeywordGroup.name).all()
+    
+    # Fetch keywords that don't belong to any group
+    unassigned_keywords = Keyword.query.filter(Keyword.keyword_group_id.is_(None)).order_by(Keyword.text).all()
+
+    # Get a set of currently linked keyword IDs for quick lookups in the template
+    linked_keyword_ids = {keyword.id for keyword in group.keywords}
+
+    return render_template('edit_group_keywords.html', 
+                           group=group, 
+                           keyword_groups=keyword_groups,
+                           unassigned_keywords=unassigned_keywords,
+                           linked_keyword_ids=linked_keyword_ids)
+
 @app.route('/keyword_groups', methods=['GET', 'POST'])
 @login_required
 def keyword_groups():

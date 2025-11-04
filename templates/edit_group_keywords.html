@@ -1,0 +1,66 @@
+{% extends 'layout.html' %}
+
+{% block title %}管理群组关键词 - {{ group.group_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>管理群组关键词</h2>
+        <a href="{{ url_for('groups') }}" class="btn btn-secondary">返回群组列表</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            为群组 <strong class="text-primary">{{ group.group_name }}</strong> 分配关键词
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('edit_group_keywords', group_id=group.id) }}">
+                {% if keyword_groups or unassigned_keywords %}
+                    {% for kw_group in keyword_groups %}
+                        <div class="mb-4">
+                            <h5>{{ kw_group.name }}</h5>
+                            <hr>
+                            <div class="row">
+                                {% for keyword in kw_group.keywords %}
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="keyword_ids" value="{{ keyword.id }}" id="kw-{{ keyword.id }}" {% if keyword.id in linked_keyword_ids %}checked{% endif %}>
+                                        <label class="form-check-label" for="kw-{{ keyword.id }}">
+                                            {{ keyword.text }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    {% if unassigned_keywords %}
+                        <div class="mb-4">
+                            <h5>未分组的关键词</h5>
+                            <hr>
+                            <div class="row">
+                                {% for keyword in unassigned_keywords %}
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="keyword_ids" value="{{ keyword.id }}" id="kw-{{ keyword.id }}" {% if keyword.id in linked_keyword_ids %}checked{% endif %}>
+                                        <label class="form-check-label" for="kw-{{ keyword.id }}">
+                                            {{ keyword.text }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary mt-3">保存更改</button>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        系统中还没有任何关键词。请先到 <a href="{{ url_for('keywords') }}" class="alert-link">关键词管理</a> 页面添加。
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
