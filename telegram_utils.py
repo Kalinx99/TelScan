@@ -13,6 +13,8 @@ from telethon.errors import (
 import telegram_monitor
 import json
 import csv
+import zipfile
+import io
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 from datetime import datetime
 from database import get_session, ExportTask, MonitoredGroup
@@ -369,5 +371,96 @@ def run_export_task(task_id, group_identifier, file_format, update_callback):
     
     asyncio.run_coroutine_threadsafe(
         export_messages_async(task_id, group_identifier, file_format, update_callback), 
+        loop
+    )
+
+async def export_media_by_ids_async(task_id, group_identifier, message_ids, update_callback):
+    logger.info(f"Starting media export task {task_id} for group {group_identifier} with IDs: {message_ids}")
+    client = telegram_monitor.client_instance
+    if not (client and client.is_connected()):
+        logger.error(f"Media export task {task_id} failed: Telegram client not connected.")
+        update_callback(task_id, 'error', log_message='监控客户端未连接，任务无法执行。')
+        return
+
+    try:
+        update_callback(task_id, 'running', log_message="正在获取群组信息...")
+        entity = await client.get_entity(int(group_identifier))
+        update_callback(task_id, 'running', log_message=f"成功连接到群组: {entity.title}")
+
+        exports_dir = os.path.join(basedir, 'exports')
+        os.makedirs(exports_dir, exist_ok=True)
+        
+        safe_group_name = "".join(c for c in entity.title if c.isalnum() or c in (' ', '_')).rstrip()
+        zip_filename = f"media_export_{safe_group_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        zip_file_path = os.path.join(exports_dir, zip_filename)
+
+        downloaded_count = 0
+        failed_count = 0
+        
+        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for i, msg_id in enumerate(message_ids):
+                update_callback(task_id, 'running', log_message=f'正在处理消息ID {msg_id} ({i+1}/{len(message_ids)})...')
+                
+                # Check for stop request
+                db_session = get_session()
+                try:
+                    task = db_session.get(ExportTask, task_id)
+                    if task and task.status == 'stopped':
+                        logger.info(f"Task {task_id} stopped by user.")
+                        update_callback(task_id, 'stopped', log_message='任务被用户手动停止。')
+                        db_session.close()
+                        return
+                finally:
+                    db_session.close()
+
+                try:
+                    # Fetch message directly from Telegram
+                    messages = await client.get_messages(entity, ids=msg_id)
+                    message = messages[0] if messages else None
+
+                    if message and message.media:
+                        # Create a temporary file path for download
+                        temp_download_path = os.path.join(exports_dir, f"temp_media_{msg_id}")
+                        
+                        # Download media
+                        downloaded_file = await client.download_media(message, file=temp_download_path)
+                        
+                        if downloaded_file and os.path.exists(downloaded_file):
+                            # Determine filename for zip
+                            media_filename = os.path.basename(downloaded_file)
+                            zf.write(downloaded_file, arcname=f"{msg_id}_{media_filename}")
+                            os.remove(downloaded_file) # Clean up temp file
+                            downloaded_count += 1
+                            logger.info(f"Downloaded and added media for message {msg_id} to zip.")
+                        else:
+                            failed_count += 1
+                            logger.warning(f"Message {msg_id} has media but failed to download.")
+                            update_callback(task_id, 'running', log_message=f'消息ID {msg_id} 媒体下载失败。')
+                    else:
+                        failed_count += 1
+                        logger.warning(f"Message {msg_id} has no media or message not found.")
+                        update_callback(task_id, 'running', log_message=f'消息ID {msg_id} 未找到媒体或消息不存在。')
+
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Error processing message {msg_id} for media export: {e}", exc_info=True)
+                    update_callback(task_id, 'running', log_message=f'处理消息ID {msg_id} 时发生错误: {e}')
+
+        logger.info(f"Media export task {task_id} completed. Downloaded {downloaded_count}, failed {failed_count}.")
+        update_callback(task_id, 'completed', file_path=zip_file_path, 
+                        log_message=f'媒体导出完成！成功下载 {downloaded_count} 个文件，失败 {failed_count} 个。文件已保存至: {zip_file_path}')
+
+    except Exception as e:
+        logger.error(f"An error occurred in media export task {task_id}: {e}", exc_info=True)
+        update_callback(task_id, 'error', log_message=f'媒体导出过程中发生错误: {e}')
+
+def run_media_export_task(task_id, group_identifier, message_ids, update_callback):
+    loop = telegram_monitor.main_loop
+    if not loop:
+        update_callback(task_id, 'error', log_message='事件循环丢失，这是一个严重错误，请重启程序。')
+        return
+    
+    asyncio.run_coroutine_threadsafe(
+        export_media_by_ids_async(task_id, group_identifier, message_ids, update_callback), 
         loop
     )

@@ -125,5 +125,6 @@ class ExportTask(db.Model):
     file_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     log = db.Column(db.Text, nullable=True)
+    task_type = db.Column(db.String(50), default='message_export') # message_export, media_export
 
     __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}

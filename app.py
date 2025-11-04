@@ -19,7 +19,7 @@ from telegram_monitor import start_monitoring, stop_monitoring, is_running
 
 
 
-from telegram_utils import get_group_details, get_my_groups, batch_join_groups, run_export_task, update_monitored_groups_info
+from telegram_utils import get_group_details, get_my_groups, batch_join_groups, run_export_task, update_monitored_groups_info, run_media_export_task
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
@@ -781,6 +781,63 @@ def start_export():
     thread.daemon = True
     thread.start()
     logger.info(f"Started background thread for task {new_task.id}")
+
+    return jsonify({'success': True, 'task_id': new_task.id})
+
+@app.route('/start_media_export', methods=['POST'])
+@login_required
+def start_media_export():
+    logger.info("Received request to start media export.")
+    group_identifier = request.form.get('group_identifier')
+    message_ids_str = request.form.getlist('message_ids[]') # message_ids is an array from JS
+    
+    # Convert message_ids to a list of integers, filtering out invalid ones
+    message_ids = []
+    for msg_id in message_ids_str:
+        try:
+            message_ids.append(int(msg_id))
+        except ValueError:
+            logger.warning(f"Invalid message ID received: {msg_id}")
+            continue
+
+    logger.info(f"Media Export parameters: group_identifier={group_identifier}, message_ids={message_ids}")
+
+    if not group_identifier:
+        logger.warning("group_identifier is missing for media export.")
+        return jsonify({'success': False, 'error': '未选择群组。'})
+    if not message_ids:
+        logger.warning("No valid message IDs provided for media export.")
+        return jsonify({'success': False, 'error': '未提供有效的消息ID。'})
+
+    group = MonitoredGroup.query.filter_by(group_identifier=group_identifier).first()
+    if not group:
+        logger.warning(f"Group with identifier {group_identifier} not found for media export.")
+        return jsonify({'success': False, 'error': '所选群组不存在。'})
+    
+    logger.info(f"Found group: {group.group_name}")
+
+    try:
+        # Create a new ExportTask for media export
+        new_task = ExportTask(
+            group_identifier=group_identifier,
+            group_name=group.group_name,
+            task_type='media_export', # Add a new task_type to differentiate
+            # Store message_ids as a JSON string in log or a new field if needed
+            log=f"Requested media export for IDs: {', '.join(map(str, message_ids))}"
+        )
+        db.session.add(new_task)
+        db.session.commit()
+        logger.info(f"Successfully created new media export task with ID: {new_task.id}")
+    except Exception as e:
+        logger.error(f"Error creating media export task in database: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'数据库错误: {e}'})
+
+    # Start background thread for media export
+    thread = Thread(target=run_media_export_task, args=(new_task.id, group_identifier, message_ids, update_export_task_in_db))
+    thread.daemon = True
+    thread.start()
+    logger.info(f"Started background thread for media export task {new_task.id}")
 
     return jsonify({'success': True, 'task_id': new_task.id})
 
