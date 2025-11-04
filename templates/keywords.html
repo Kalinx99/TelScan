@@ -102,13 +102,20 @@
                             {% endif %}
                         </td>
                         <td>
-                            <div class="d-flex flex-wrap gap-1">
-                                {% for group in keyword.groups %}
-                                <span class="badge bg-secondary">{{ group.group_name }}</span>
-                                {% else %}
-                                <span class="badge bg-warning text-dark">未关联任何群组</span>
-                                {% endfor %}
+                            {% if keyword.groups %}
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroups-{{ keyword.id }}" aria-expanded="false" aria-controls="collapseGroups-{{ keyword.id }}">
+                                {{ keyword.groups|length }} 个关联群组 <i class="bi bi-chevron-down"></i>
+                            </button>
+                            <div class="collapse" id="collapseGroups-{{ keyword.id }}">
+                                <div class="d-flex flex-wrap gap-1 mt-2">
+                                    {% for group in keyword.groups %}
+                                    <span class="badge bg-secondary">{{ group.group_name }}</span>
+                                    {% endfor %}
+                                </div>
                             </div>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">未关联任何群组</span>
+                            {% endif %}
                         </td>
                         <td class="text-end">
                             <a href="{{ url_for('edit_keyword', keyword_id=keyword.id) }}" class="btn btn-outline-secondary btn-sm">编辑</a>
