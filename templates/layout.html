@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram 监控系统</title>
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- 本地 Bootstrap CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='js_css/bootstrap.min.css') }}">
     <style>
@@ -31,6 +33,43 @@
             border-radius: 0.5rem;
             box-shadow: 0 0 15px rgba(0,0,0,.05);
         }
+        /* 暗色主题 */
+        body.dark-theme {
+            background-color: #1a1d24;
+            color: #e5e7eb;
+        }
+        body.dark-theme .navbar {
+            background-color: #252932;
+            border-bottom: 1px solid #374151;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        body.dark-theme .nav-link {
+            color: #9ca3af;
+        }
+        body.dark-theme .nav-link.active {
+            color: #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+        }
+        body.dark-theme .container {
+            background-color: #252932;
+            box-shadow: 0 0 15px rgba(0,0,0,.2);
+        }
+        body.dark-theme .btn-outline-danger {
+            color: #f87171;
+            border-color: #f87171;
+        }
+        body.dark-theme .btn-outline-danger:hover {
+            background-color: #f87171;
+            color: white;
+        }
+        body.dark-theme .btn-outline-primary {
+            color: #60a5fa;
+            border-color: #60a5fa;
+        }
+        body.dark-theme .btn-outline-primary:hover {
+            background-color: #60a5fa;
+            color: white;
+        }
         .btn-primary {
             background-color: #0d6efd;
             border-color: #0d6efd;
@@ -56,6 +95,9 @@
             {% if g.user %}
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 数据仪表盘</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'groups' or request.endpoint == 'add_my_groups' or request.endpoint == 'add_my_groups_page' %}active{% endif %}" href="{{ url_for('groups') }}">群组管理</a>
                     </li>
                     <li class="nav-item">
@@ -66,9 +108,6 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'messages' %}active{% endif %}" href="{{ url_for('messages') }}">消息日志</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'export_page' %}active{% endif %}" href="{{ url_for('export_page') }}">历史消息导出</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -118,7 +157,7 @@
 <script src="{{ url_for('static', filename='js_css/popper.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js_css/bootstrap.min.js') }}"></script>
 
-{% block scripts %}{% endblock %}
+{% block extra_js %}{% endblock %}
 
 </body>
 </html>
